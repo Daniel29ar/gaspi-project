@@ -14,6 +14,9 @@ class MainViewModel {
     @Published var isSearching: Bool = false
     @Published var searchText: String = ""
     
+    private(set) var currentPage: Int = 1
+    private var canLoadMorePages = true
+    
     private var cancellables = Set<AnyCancellable>()
     private let userDefaultsKey = "PreviousSearches"
     
@@ -23,33 +26,23 @@ class MainViewModel {
     }
 }
 
-// MARK: - Private Function
-private extension MainViewModel {
+// MARK: - Public Function
+extension MainViewModel {
     
-    func bindSearch() {
-        $searchText
-            .debounce(for: .milliseconds(650), scheduler: DispatchQueue.main)
-            .removeDuplicates()
-            .sink { [weak self] text in
-                guard let self else { return }
-                if text.isEmpty {
-                    self.isSearching = false
-                    self.searchResults = []
-                } else {
-                    self.search(query: text)
-                }
-            }
-            .store(in: &cancellables)
-    }
-    
-    func search(query: String) {
+    func search(query: String, reset: Bool = true) {
         guard !query.isEmpty else { return }
         isSearching = true
+        
+        if reset {
+            currentPage = 1
+            canLoadMorePages = true
+            searchResults = []
+        }
         
         var components = URLComponents(string: "https://axesso-walmart-data-service.p.rapidapi.com/wlm/walmart-search-by-keyword")
         components?.queryItems = [
             URLQueryItem(name: "keyword", value: query),
-            URLQueryItem(name: "page", value: "1"),
+            URLQueryItem(name: "page", value: currentPage.description),
             URLQueryItem(name: "sortBy", value: "bestmatch")
         ]
         guard let url = components?.url else { return }
@@ -75,9 +68,35 @@ private extension MainViewModel {
                 }
             }, receiveValue: { [weak self] response in
                 guard let self else { return }
-                self.searchResults.append(contentsOf: response.products)
+                if reset {
+                    self.searchResults = response.products
+                } else {
+                    self.searchResults.append(contentsOf: response.products)
+                }
+                self.canLoadMorePages = response.products.count < 20
+                self.currentPage += 1
                 self.storeSearch(query: query)
             })
+            .store(in: &cancellables)
+    }
+}
+
+// MARK: - Private Function
+private extension MainViewModel {
+    
+    func bindSearch() {
+        $searchText
+            .debounce(for: .milliseconds(650), scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .sink { [weak self] text in
+                guard let self else { return }
+                if text.isEmpty {
+                    self.isSearching = false
+                    self.searchResults = []
+                } else {
+                    self.search(query: text)
+                }
+            }
             .store(in: &cancellables)
     }
     

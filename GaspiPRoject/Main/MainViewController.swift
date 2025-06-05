@@ -20,6 +20,7 @@ class MainViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupBindings()
     }
 }
 
@@ -32,6 +33,11 @@ private extension MainViewController {
 
         searchBar.placeholder = "Buscar..."
         searchBar.delegate = self
+        if let textField = searchBar.value(forKey: "searchField") as? UITextField {
+            textField.delegate = self
+            textField.returnKeyType = .done
+            textField.enablesReturnKeyAutomatically = false
+        }
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(searchBar)
 
@@ -59,7 +65,7 @@ private extension MainViewController {
             .sink { [weak self] text in
                 guard let self else { return }
                 if text.isEmpty {
-                    self.dataSource = []
+                    self.dataSource = self.viewModel.previousSearches
                     self.tableView.reloadData()
                 }
             }
@@ -89,6 +95,15 @@ private extension MainViewController {
     }
 }
 
+// MARK: - UITextFieldDelegate
+extension MainViewController: UITextFieldDelegate {
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return false
+    }
+}
+
 // MARK: - UISearchBarDelegate
 extension MainViewController: UISearchBarDelegate {
     
@@ -97,17 +112,21 @@ extension MainViewController: UISearchBarDelegate {
     }
 }
 
-// MARK: - UITableViewDelegate, UITableViewDataSource
-extension MainViewController: UITableViewDelegate, UITableViewDataSource {
+// MARK: - UITableViewDelegate, UITableViewDataSource, UIScrollViewDelegate
+extension MainViewController: UITableViewDelegate, UITableViewDataSource, UIScrollViewDelegate {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         dataSource.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let product = dataSource[indexPath.row] as? Product else { return .init()}
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = "\(product.name)"
+        let item = dataSource[indexPath.row]
+        if let search = item as? String {
+            cell.textLabel?.text = "\(search)"
+        } else if let product = item as? Product {
+            cell.textLabel?.text = "\(product.name)"
+        }
         return cell
     }
     
@@ -116,6 +135,18 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
         if let search = dataSource[indexPath.row] as? String {
             searchBar.text = search
             viewModel.searchText = search
+        }
+    }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offsetY = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let frameHeight = scrollView.frame.size.height
+        
+        if offsetY > contentHeight - frameHeight * 1.5,
+           !viewModel.isSearching,
+           !viewModel.searchText.isEmpty {
+            viewModel.search(query: viewModel.searchText, reset: false)
         }
     }
 }
