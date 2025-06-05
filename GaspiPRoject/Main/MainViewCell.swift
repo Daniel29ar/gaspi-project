@@ -66,30 +66,36 @@ class MainViewCell: UITableViewCell {
                     guard let self else { return }
                     guard let data = data,
                           let image = UIImage(data: data) else {
-                        self.setImage(nil)
+                        DispatchQueue.global().async {
+                            DispatchQueue.main.async {
+                                self.pImageView.image = UIImage(systemName: "magnifyingglass")
+                                self.pImageView.tintColor = .black
+                            }
+                        }
                         return
                     }
                     DispatchQueue.global().async {
                         DispatchQueue.main.async {
-                            self.setImage(image)
+                            self.pImageView.image = image
                         }
                     }
                 }
                 task.resume()
             } else {
-                self.setImage(nil)
+                DispatchQueue.global().async {
+                    DispatchQueue.main.async {
+                        self.pImageView.image = UIImage(systemName: "magnifyingglass")
+                        self.pImageView.tintColor = .black
+                    }
+                }
             }
         } else {
-            self.setImage(nil)
-        }
-    }
-    
-    private func setImage(_ image: UIImage?) {
-        if let image = image {
-            self.pImageView.image = image
-        } else {
-            self.pImageView.image = UIImage(systemName: "magnifyingglass")
-            self.pImageView.tintColor = .black
+            DispatchQueue.global().async {
+                DispatchQueue.main.async {
+                    self.pImageView.image = UIImage(systemName: "magnifyingglass")
+                    self.pImageView.tintColor = .black
+                }
+            }
         }
     }
 }
