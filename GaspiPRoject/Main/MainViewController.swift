@@ -41,7 +41,7 @@ private extension MainViewController {
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(searchBar)
 
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.register(MainViewCell.self, forCellReuseIdentifier: "cell")
         tableView.delegate = self
         tableView.dataSource = self
         view.addSubview(tableView)
@@ -120,12 +120,15 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource, UIScro
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as? MainViewCell else {
+            return .init()
+        }
+        
         let item = dataSource[indexPath.row]
         if let search = item as? String {
-            cell.textLabel?.text = "\(search)"
+            cell.configure(with: search)
         } else if let product = item as? Product {
-            cell.textLabel?.text = "\(product.name)"
+            cell.configure(with: product.name, price: product.name, imageURL: product.name)
         }
         return cell
     }
