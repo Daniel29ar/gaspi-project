@@ -29,6 +29,11 @@ class MainViewModel {
 // MARK: - Public Function
 extension MainViewModel {
     
+    func clearPreviousSearches() {
+        previousSearches.removeAll()
+        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+    }
+    
     func search(query: String, reset: Bool = true) {
         guard !query.isEmpty else { return }
         isSearching = true

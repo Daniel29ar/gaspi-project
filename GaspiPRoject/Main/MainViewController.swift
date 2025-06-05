@@ -28,6 +28,11 @@ class MainViewController: UIViewController {
 private extension MainViewController {
     
     func setupUI() {
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Borrar",
+                                                            style: .plain,
+                                                            target: self,
+                                                            action: #selector(clearSearchHistory))
+        
         title = "Buscar productos"
         view.backgroundColor = .white
 
@@ -57,6 +62,11 @@ private extension MainViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
+    
+    @objc
+    private func clearSearchHistory() {
+        viewModel.clearPreviousSearches()
     }
     
     func setupBindings() {
