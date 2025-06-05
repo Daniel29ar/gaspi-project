@@ -9,13 +9,16 @@ import Combine
 
 // MARK: - ViewModel
 class MainViewModel {
+    @Published var previousSearches: [String] = []
     @Published var searchResults: [Product] = []
     @Published var isSearching: Bool = false
     @Published var searchText: String = ""
     
     private var cancellables = Set<AnyCancellable>()
+    private let userDefaultsKey = "PreviousSearches"
     
     init() {
+        loadPreviousSearches()
         bindSearch()
     }
 }
@@ -57,10 +60,10 @@ private extension MainViewModel {
         
         URLSession.shared.dataTaskPublisher(for: url)
             .handleEvents(receiveOutput: { output in
-                    if let jsonString = String(data: output.data, encoding: .utf8) {
-                        print("🔍 JSON Response:\n\(jsonString)")
-                    }
-                })
+                if let jsonString = String(data: output.data, encoding: .utf8) {
+                    print("🔍 JSON Response:\n\(jsonString)")
+                }
+            })
             .map { $0.data }
             .decode(type: WalmartResponse.self, decoder: JSONDecoder())
             .receive(on: DispatchQueue.main)
@@ -73,8 +76,24 @@ private extension MainViewModel {
             }, receiveValue: { [weak self] response in
                 guard let self else { return }
                 self.searchResults.append(contentsOf: response.products)
+                self.storeSearch(query: query)
             })
             .store(in: &cancellables)
-
+    }
+    
+    func storeSearch(query: String) {
+        if !previousSearches.contains(query){
+            previousSearches.insert(query, at: 0)
+            if previousSearches.count > 10 {
+                previousSearches.removeLast()
+            }
+            UserDefaults.standard.set(previousSearches, forKey: userDefaultsKey)
+        }
+    }
+    
+    func loadPreviousSearches() {
+        if let saved = UserDefaults.standard.stringArray(forKey: userDefaultsKey) {
+            previousSearches = saved
+        }
     }
 }

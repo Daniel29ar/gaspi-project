@@ -75,6 +75,17 @@ private extension MainViewController {
                 }
             }
             .store(in: &cancellables)
+        
+        viewModel.$previousSearches
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] searches in
+                guard let self else { return }
+                if self.viewModel.searchText.isEmpty {
+                    self.dataSource = searches
+                    self.tableView.reloadData()
+                }
+            }
+            .store(in: &cancellables)
     }
 }
 
@@ -98,5 +109,13 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         cell.textLabel?.text = "\(product.name)"
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        if let search = dataSource[indexPath.row] as? String {
+            searchBar.text = search
+            viewModel.searchText = search
+        }
     }
 }
