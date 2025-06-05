@@ -6,12 +6,16 @@
 //
 
 import UIKit
+import Combine
 
 // MARK: - ViewController
 class MainViewController: UIViewController {
     
     private let tableView = UITableView()
     private let searchBar = UISearchBar()
+    private var viewModel = MainViewModel()
+    private var dataSource: [AnyHashable] = []
+    private var cancellables = Set<AnyCancellable>()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,24 +52,51 @@ private extension MainViewController {
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
+    
+    func setupBindings() {
+        viewModel.$searchText
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] text in
+                guard let self else { return }
+                if text.isEmpty {
+                    self.dataSource = []
+                    self.tableView.reloadData()
+                }
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$searchResults
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] products in
+                guard let self else { return }
+                if !self.viewModel.searchText.isEmpty {
+                    self.dataSource = products
+                    self.tableView.reloadData()
+                }
+            }
+            .store(in: &cancellables)
+    }
 }
 
 // MARK: - UISearchBarDelegate
 extension MainViewController: UISearchBarDelegate {
     
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {}
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        viewModel.searchText = searchText
+    }
 }
 
 // MARK: - UITableViewDelegate, UITableViewDataSource
 extension MainViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        3
+        dataSource.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let product = dataSource[indexPath.row] as? Product else { return .init()}
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = "\(indexPath.row)"
+        cell.textLabel?.text = "\(product.name)"
         return cell
     }
 }
