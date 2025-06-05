@@ -58,7 +58,7 @@ class MainViewCell: UITableViewCell {
         if let imageURL = imageURL,
            var urlComponents = URLComponents(string: imageURL) {
             var queryItems: [URLQueryItem] = urlComponents.queryItems ?? []
-            queryItems.append(URLQueryItem(name: "s", value: "60"))
+            queryItems.append(URLQueryItem(name: "s", value: "40"))
             urlComponents.queryItems = queryItems
             
             if let url = urlComponents.url {

@@ -15,7 +15,6 @@ class MainViewModel {
     @Published var searchText: String = ""
     
     private(set) var currentPage: Int = 1
-    private var canLoadMorePages = true
     
     private var cancellables = Set<AnyCancellable>()
     private let userDefaultsKey = "PreviousSearches"
@@ -40,7 +39,6 @@ extension MainViewModel {
         
         if reset {
             currentPage = 1
-            canLoadMorePages = true
             searchResults = []
         }
         
@@ -54,14 +52,9 @@ extension MainViewModel {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "content-type")
-        request.addValue("x-rapidapi-key", forHTTPHeaderField: "x-rapidapi-key")
+        request.addValue("fce0e15738msh6a87c0c9db9505cp14b74fjsn54bc768f3bc7", forHTTPHeaderField: "x-rapidapi-key")
         
-        URLSession.shared.dataTaskPublisher(for: url)
-            .handleEvents(receiveOutput: { output in
-                if let jsonString = String(data: output.data, encoding: .utf8) {
-                    print("🔍 JSON Response:\n\(jsonString)")
-                }
-            })
+        URLSession.shared.dataTaskPublisher(for: request)
             .map { $0.data }
             .decode(type: WalmartResponse.self, decoder: JSONDecoder())
             .receive(on: DispatchQueue.main)
@@ -73,12 +66,26 @@ extension MainViewModel {
                 }
             }, receiveValue: { [weak self] response in
                 guard let self else { return }
-                if reset {
-                    self.searchResults = response.products
-                } else {
-                    self.searchResults.append(contentsOf: response.products)
+                var products: [Product] = []
+                for itemStack in response.item?.props?.pagePros?.initialData?.searchResult?.itemStacks ?? [] {
+                    for item in itemStack.items {
+                        if let name = item.name,
+                           let priceInfo = item.priceInfo,
+                           let price = priceInfo.linePrice,
+                           !price.isEmpty {
+                            let product = Product(name: name,
+                                                  price: price,
+                                                  image: item.image ?? "")
+                            products.append(product)
+                        }
+                    }
                 }
-                self.canLoadMorePages = response.products.count < 20
+                
+                if reset {
+                    self.searchResults = products
+                } else {
+                    self.searchResults.append(contentsOf: products)
+                }
                 self.currentPage += 1
                 self.storeSearch(query: query)
             })

@@ -8,4 +8,6 @@
 // MARK: - Product Model
 struct Product: Decodable, Hashable {
     let name: String
+    let price: String
+    let image: String
 }

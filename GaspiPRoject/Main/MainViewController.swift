@@ -125,6 +125,10 @@ extension MainViewController: UISearchBarDelegate {
 // MARK: - UITableViewDelegate, UITableViewDataSource, UIScrollViewDelegate
 extension MainViewController: UITableViewDelegate, UITableViewDataSource, UIScrollViewDelegate {
     
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+            return 60
+        }
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         dataSource.count
     }
@@ -138,7 +142,7 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource, UIScro
         if let search = item as? String {
             cell.configure(with: search)
         } else if let product = item as? Product {
-            cell.configure(with: product.name, price: product.name, imageURL: product.name)
+            cell.configure(with: product.name, price: product.price, imageURL: product.image)
         }
         return cell
     }
